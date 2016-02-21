@@ -33,6 +33,84 @@
 		(future (upload-document headshot)
 				(force d)))))
 
+(def yak-butter-international
+  {:store "Yak Butter International"
+    :price 90
+    :smoothness 90})
+
+(def butter-than-nothing
+  {:store "Butter Than Nothing"
+   :price 150
+   :smoothness 83})
+
+;; This is the butter that meets our requirements
+(def baby-got-yak
+  {:store "Baby Got Yak"
+   :price 94
+   :smoothness 99})
+
+(def all-butters [yak-butter-international butter-than-nothing baby-got-yak])
+
+(defn mock-api-call
+  [result]
+  (Thread/sleep 1000)
+  result)
+
+(defn satisfactory?
+  "If the butter meets our criteria, return the butter, else return false"
+  [butter]
+  (and (<= (:price butter) 100)
+       (>= (:smoothness butter) 97)
+       butter))
+
+(defn find-the-best-butter []
+  (let [res-promise (promise)]
+	(doseq [b all-butters]
+	  (future
+		(if-let [satisfactory-butter (satisfactory? (mock-api-call b))]
+		  (deliver res-promise satisfactory-butter))))
+	res-promise))
+
+(defmacro wait
+  [timeout & body]
+  `(do (Thread/sleep ~timeout) ~@body))
+
+(defmacro enqueue
+  ([q current-promise concurrent serialized]
+   `(let [~current-promise (promise)]
+	  (future (deliver ~current-promise ~concurrent))
+	  (deref ~q)
+	  ~serialized
+	  ~current-promise))
+  ([current-promise concurrent serialized]
+  `(enqueue (future) ~current-promise ~concurrent ~serialized)))
+
+
+(defmacro enqueue-with-fn
+  ([q current-promise concurrent f]
+   `(let [~current-promise (promise)]
+	  (future (deliver ~current-promise ~concurrent))
+	  (deref ~q)
+	  (apply  ~f [(deref ~current-promise)])
+	  ~current-promise))
+  ([current-promise concurrent f]
+  `(enqueue-with-fn (future) ~current-promise ~concurrent ~f)))
+
+(defn enqueue-demo []
+  (time
+   (->
+	(enqueue saying (wait 2000 "Eidka") (println @saying))
+	(enqueue saying (wait 4000 "Ajsdksad") (println @saying))
+	(enqueue saying (wait 1000 "vcmvedzu") (println @saying)))))
+
+(defn enqueue-with-fn-demo []
+  (time
+   (->
+	(enqueue-with-fn saying (wait 2000 "Eidka") #(println %))
+	(enqueue-with-fn saying (wait 4000 "Ajsdksad") #(println %))
+	(enqueue-with-fn saying (wait 1000 "vcmvedzu") #(println %)))))
+
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
