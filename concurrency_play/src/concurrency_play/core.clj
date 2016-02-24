@@ -111,6 +111,43 @@
 	(enqueue-with-fn saying (wait 1000 "vcmvedzu") #(println %)))))
 
 
+(defn percent-deteriorated-validator
+  [{:keys [percent-deteriorated]}]
+  (and (>= percent-deteriorated 0)
+	   (<= percent-deteriorated 100)))
+
+(def fred
+  (atom {:cuddle-hunger-level 0
+		 :cuddle-decay-level 1
+		 :percent-deteriorated 0}
+  :validator percent-deteriorated-validator))
+
+(defn shuffle-speed [zombie]
+  (* (:cuddle-hunger-level zombie)
+	 (- 100 (:percent-deteriorated zombie))))
+
+(defn shuffle-alert
+  [key watched old-state new-state]
+  (let [sph (shuffle-speed new-state)]
+	(if (> sph 5000)
+	  (do
+		(println "Fuck!!!! RUN!!!" sph)
+		(println "Key" key))
+	  (do
+		(println "It is still fine now!" sph)
+		(println "Key" key)))))
+
+(defn atom-play-1 []
+  (swap! fred (fn [current-state]
+				(merge-with + current-state {:cuddle-hunger-level 1
+									:cuddle-decay-level 1}))))
+
+(defn increase-cuddle-hunger-level
+  [zombie-state increase-by]
+  (merge-with + zombie-state {:cuddle-hunger-level increase-by}))
+
+
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
