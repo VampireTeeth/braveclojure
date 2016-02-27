@@ -19,6 +19,33 @@
 	(>!! echo-buf "Hey");blocking until the process picks the first "Hey"
 	(println "Hey Sent")))
 
+(defn thread-demo [name]
+  (let [t (thread (do
+					(Thread/sleep 1000)
+					name))]
+	(println "Returned from thread:" (<!! t))))
+
+(defn hot-dog-machine []
+  (let [in (chan)
+		out (chan)]
+	(a/go-loop []
+		(let [money (<! in)]
+		  (println "Money received:" money)
+		  (>! out "hot dog!!"))
+	  (recur))
+	[in out]))
+
+(defn buy-hot-dog
+  [how-many]
+  (let [[in out] (hot-dog-machine)]
+	(loop [num how-many]
+	  (if (> num 0)
+		(do
+		  (println "Buying...")
+		  (>!! in "1 dollar")
+		  (println "I got a" (<!! out))
+		  (recur (dec num)))))))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
