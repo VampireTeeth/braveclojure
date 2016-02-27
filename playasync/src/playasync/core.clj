@@ -46,6 +46,21 @@
 		  (println "I got a" (<!! out))
 		  (recur (dec num)))))))
 
+
+(defn headshot-upload [headshot c]
+	(go (Thread/sleep (rand-int 1000))
+		(>! c headshot)))
+
+(defn headshot-upload-demo []
+  (let [c1 (chan)
+		c2 (chan)
+		c3 (chan)]
+	(headshot-upload "serious.jpg" c1)
+	(headshot-upload "fun.jpg" c2)
+	(headshot-upload "sassy.jpg" c3)
+	(let [[headshot c] (alts!! [c1 c2 c3])]
+		 (println headshot "finished uploading"))))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
