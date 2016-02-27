@@ -2,7 +2,6 @@
   (:gen-class))
 
 
-
 (defn my-future []
   (future
 	(Thread/sleep 4000)
@@ -147,6 +146,51 @@
   (merge-with + zombie-state {:cuddle-hunger-level increase-by}))
 
 
+
+(defn sleep-and-update
+  [sleep-time thread-name update-fn]
+  (fn [state]
+	(Thread/sleep sleep-time)
+	(println (str thread-name ": " state " " sleep-time " ms"))
+	(update-fn state)))
+
+
+(defn commute-demo []
+  (let [counter (ref 0)]
+	(future (dosync (commute counter (sleep-and-update 100 "Thread-A" inc))))
+	(future (dosync (commute counter (sleep-and-update 150 "Thread-B" inc))))))
+
+
+
+(def ^:dynamic *notification-address* "global@elf.com")
+
+(defn dynamic-binding-demo []
+  (println *notification-address*)
+  (binding [*notification-address* "test-1@elf.com"]
+	(println *notification-address*)
+	(binding [*notification-address* "test-1@elf.com"]
+	(println *notification-address*))))
+
+
+(def alphabet-length 26)
+
+(def letters (mapv (comp str char (partial + 65)) (range alphabet-length)))
+
+(defn random-string
+  "Returns a random string of specified length"
+  [length]
+  (apply str (take length (repeatedly #(rand-nth letters)))))
+
+(defn random-string-list
+  [list-length string-length]
+  (doall (take list-length (repeatedly (partial random-string string-length)))))
+
+(defn pmap-demo
+  []
+  (let [orc-names (random-string-list 3000 7000)]
+	(time (dorun (map clojure.string/lower-case orc-names))) ;This is sequential
+	(time (dorun (pmap clojure.string/lower-case orc-names))) ;This is even slower than map because 3000 threads creation takes too much overhead
+	(time (dorun (pmap clojure.string/lower-case (partition-all 100 orc-names)))))) ; This is much faster because only 30 (3000/100) threads will be created
 
 (defn -main
   "I don't do a whole lot ... yet."
